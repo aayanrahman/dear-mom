@@ -28,8 +28,17 @@ const NOTE_COLORS = [
 const SPRING = { type: "spring" as const, stiffness: 260, damping: 24, mass: 0.9 };
 const SOFT_SPRING = { type: "spring" as const, stiffness: 180, damping: 22, mass: 1 };
 
+const PAPER_SOUNDS = [
+  "/sounds/paper-1.mp3",
+  "/sounds/paper-2.mp3",
+  "/sounds/paper-3.mp3",
+  "/sounds/paper-4.mp3",
+  "/sounds/paper-5.mp3",
+];
+
 function useJarAudio() {
   const ctxRef = useRef<AudioContext | null>(null);
+  const paperPoolRef = useRef<HTMLAudioElement[] | null>(null);
   const get = useCallback(() => {
     if (typeof window === "undefined") return null;
     if (!ctxRef.current) {
@@ -47,29 +56,22 @@ function useJarAudio() {
   }, []);
 
   const crinkle = useCallback(() => {
-    const ctx = get();
-    if (!ctx) return;
-    const dur = 0.42;
-    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) {
-      const t = i / d.length;
-      // chunky randomized noise that fades out
-      const n = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.2);
-      // add little crackles
-      d[i] = n + (Math.random() < 0.02 ? (Math.random() - 0.5) * 0.6 * (1 - t) : 0);
+    if (typeof window === "undefined") return;
+    if (!paperPoolRef.current) {
+      paperPoolRef.current = PAPER_SOUNDS.map((src) => {
+        const a = new Audio(src);
+        a.preload = "auto";
+        a.volume = 0.55;
+        return a;
+      });
     }
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.value = 2800 + Math.random() * 1500;
-    filter.Q.value = 0.8;
-    const g = ctx.createGain();
-    g.gain.value = 0.22;
-    src.connect(filter).connect(g).connect(ctx.destination);
-    src.start();
-  }, [get]);
+    const pool = paperPoolRef.current;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    // Clone so overlapping plays don't cut each other off.
+    const node = pick.cloneNode(true) as HTMLAudioElement;
+    node.volume = pick.volume;
+    void node.play().catch(() => {});
+  }, []);
 
   const lidPop = useCallback(() => {
     const ctx = get();
@@ -227,7 +229,6 @@ export default function JarViewer({
 
   function closeNote() {
     if (active === null) return;
-    audio.crinkle();
     if (!revealed.includes(active)) setRevealed((p) => [...p, active]);
     setActive(null);
   }
@@ -497,6 +498,7 @@ export default function JarViewer({
               memory={data.n[active]}
               color={NOTE_COLORS[active % NOTE_COLORS.length]}
               onClose={closeNote}
+              onFoldStart={audio.crinkle}
               accent={scent.accent}
             />
           )}
@@ -667,16 +669,19 @@ function NoteReader({
   memory,
   color,
   onClose,
+  onFoldStart,
   accent,
 }: {
   memory: Memory;
   color: { bg: string; ink: string };
   onClose: () => void;
+  onFoldStart?: () => void;
   accent: string;
 }) {
   const [prompt, text] = memory;
   const [fold, setFold] = useState<"folded" | "flat">("folded");
   const [closing, setClosing] = useState(false);
+  const [size, setSize] = useState({ w: 360, h: 470 });
 
   useEffect(() => {
     // Wait for the modal to finish springing in, then unfold.
@@ -684,8 +689,23 @@ function NoteReader({
     return () => window.clearTimeout(t);
   }, []);
 
+  useEffect(() => {
+    const compute = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      // Leave generous side gutters on phones so the paper never reaches the edge.
+      const w = Math.min(vw - 48, 360);
+      const h = Math.min(vh * 0.78, w * (470 / 360));
+      setSize({ w, h });
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
+
   const closeNote = () => {
     if (closing) return;
+    onFoldStart?.();
     setClosing(true);
     setFold("folded");
     // Once the fold animation lands, dismiss.
@@ -713,14 +733,14 @@ function NoteReader({
         onClick={(e) => e.stopPropagation()}
         className="relative"
         style={{
-          width: "min(92vw, 360px)",
-          height: "min(85vh, 470px)",
+          width: size.w,
+          height: size.h,
           perspective: 1400,
         }}
       >
         <FoldingPaper
-          width={360}
-          height={470}
+          width={size.w}
+          height={size.h}
           prompt={prompt}
           text={text}
           ink={color.ink}

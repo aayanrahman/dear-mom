@@ -159,9 +159,18 @@ export default function Jar({
         </g>
 
         {/* lid: slides up when open, or drops in from above when sealing,
-            or hidden entirely when the jar hasn't been sealed yet */}
+            or hidden entirely when the jar hasn't been sealed yet.
+            When descending we MUST give an explicit initial state — with
+            `initial={false}` framer skips the keyframe array and jumps to
+            the final value, which made the lid appear already-on. */}
         <motion.g
-          initial={false}
+          initial={
+            sealState === "descending"
+              ? { y: -120, rotate: -8, opacity: 1 }
+              : sealState === "missing"
+                ? { y: -320, opacity: 0 }
+                : false
+          }
           animate={
             sealState === "descending"
               ? {

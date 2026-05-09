@@ -44,9 +44,18 @@ const PROMPTS = [
 
 const SPRING = { type: "spring" as const, stiffness: 280, damping: 26, mass: 0.9 };
 
-// ---------- audio: just two tiny synthesized sfx ----------
+// ---------- audio: real mp3 paper sounds + a synthesized seal thud ----------
+const PAPER_SOUNDS = [
+  "/sounds/paper-1.mp3",
+  "/sounds/paper-2.mp3",
+  "/sounds/paper-3.mp3",
+  "/sounds/paper-4.mp3",
+  "/sounds/paper-5.mp3",
+];
+
 function useAudio() {
   const ctxRef = useRef<AudioContext | null>(null);
+  const paperPoolRef = useRef<HTMLAudioElement[] | null>(null);
   const get = useCallback(() => {
     if (typeof window === "undefined") return null;
     if (!ctxRef.current) {
@@ -60,28 +69,22 @@ function useAudio() {
     return ctxRef.current;
   }, []);
   const crinkle = useCallback(() => {
-    const ctx = get();
-    if (!ctx) return;
-    const dur = 0.5;
-    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) {
-      const t = i / d.length;
-      d[i] =
-        (Math.random() * 2 - 1) * Math.pow(1 - t, 2.0) +
-        (Math.random() < 0.025 ? (Math.random() - 0.5) * 0.7 * (1 - t) : 0);
+    if (typeof window === "undefined") return;
+    if (!paperPoolRef.current) {
+      paperPoolRef.current = PAPER_SOUNDS.map((src) => {
+        const a = new Audio(src);
+        a.preload = "auto";
+        a.volume = 0.55;
+        return a;
+      });
     }
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const f = ctx.createBiquadFilter();
-    f.type = "bandpass";
-    f.frequency.value = 2800 + Math.random() * 1400;
-    f.Q.value = 0.9;
-    const g = ctx.createGain();
-    g.gain.value = 0.28;
-    src.connect(f).connect(g).connect(ctx.destination);
-    src.start();
-  }, [get]);
+    const pool = paperPoolRef.current;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    // Clone so overlapping plays don't cut each other off.
+    const node = pick.cloneNode(true) as HTMLAudioElement;
+    node.volume = pick.volume;
+    void node.play().catch(() => {});
+  }, []);
   const thud = useCallback(() => {
     const ctx = get();
     if (!ctx) return;
@@ -285,9 +288,9 @@ export default function CreatePage() {
         </div>
       )}
 
-      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-5 pt-12 sm:pt-16 lg:pt-24 pb-10 lg:pb-16 min-h-screen flex flex-col-reverse gap-6 lg:gap-14 lg:grid lg:grid-cols-[1.15fr_minmax(280px,400px)] lg:items-center">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-5 pt-8 sm:pt-12 lg:pt-24 pb-10 lg:pb-16 min-h-[100svh] flex flex-col-reverse gap-3 sm:gap-6 lg:gap-14 lg:grid lg:grid-cols-[1.15fr_minmax(280px,400px)] lg:items-center">
         {/* Step content */}
-        <section className="relative min-h-[380px] lg:min-h-[460px] flex items-center">
+        <section className="relative lg:min-h-[460px] flex items-center">
           <AnimatePresence mode="wait">
             {!sealing && (
               <motion.div
@@ -372,14 +375,14 @@ export default function CreatePage() {
 
         {/* Live jar — appears above the step on phones, beside on desktop.
             No lid yet: the lid is placed during the seal ceremony. */}
-        <aside className="flex flex-col items-center justify-center lg:justify-end">
+        <aside className="flex-1 lg:flex-none flex flex-col items-center justify-center lg:justify-end">
           <motion.div
             ref={jarRef}
             animate={sealing ? { opacity: 0, scale: 0.85 } : jarControls}
             transition={
               sealing ? { duration: 0.4, ease: [0.22, 1, 0.36, 1] } : undefined
             }
-            className="relative"
+            className="relative flex flex-col items-center"
             style={{
               filter: `drop-shadow(0 16px 32px ${scentTheme.accent}33)`,
             }}
@@ -390,14 +393,14 @@ export default function CreatePage() {
               scentLabel={scentTheme.label}
               notesPreview={notes}
               sealState="missing"
-              className="w-40 sm:w-52 lg:w-72"
+              className="w-[min(72vw,320px)] sm:w-[min(60vw,360px)] lg:w-72"
             />
             {!sealing && (
               <motion.p
                 key={notes.length}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 0.75, y: 0 }}
-                className="text-center font-display italic text-sm sm:text-base mt-2 sm:mt-3"
+                className="text-center font-display italic text-sm sm:text-base mt-1 sm:mt-2"
                 style={{ color: scentTheme.text }}
               >
                 {notes.length === 0
@@ -849,7 +852,7 @@ function ScentStep({
     <div>
       <Eyebrow accent={accent}>pick a feeling</Eyebrow>
       <BigHeading>what does she smell like?</BigHeading>
-      <div className="mt-7 flex flex-wrap gap-3 max-w-lg">
+      <div className="mt-5 sm:mt-7 flex flex-wrap gap-2 sm:gap-3 max-w-lg">
         {Object.entries(SCENTS).map(([key, v]) => {
           const active = value === key;
           return (
@@ -859,7 +862,7 @@ function ScentStep({
               onClick={() => onChange(key as Scent)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="rounded-full px-6 py-4 text-lg font-medium transition-all"
+              className="rounded-full px-5 py-3 sm:px-6 sm:py-4 text-base sm:text-lg font-medium transition-all"
               style={{
                 background: active ? v.accent : "rgba(255,255,255,0.65)",
                 color: active ? "white" : v.text,
@@ -895,7 +898,7 @@ function RibbonStep({
     <div>
       <Eyebrow accent={accent}>tie a ribbon</Eyebrow>
       <BigHeading>her favorite color?</BigHeading>
-      <div className="mt-7 flex flex-wrap gap-3 max-w-lg">
+      <div className="mt-5 sm:mt-7 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3 max-w-lg">
         {Object.entries(RIBBONS).map(([key, v]) => {
           const active = value === key;
           return (
@@ -975,9 +978,9 @@ function MemoryStep({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={SPRING}
-        className="mt-2"
+        className="mt-1"
       >
-        <h2 className="font-display italic text-2xl sm:text-3xl lg:text-5xl leading-[1.1] max-w-lg tracking-tight">
+        <h2 className="font-display italic text-xl sm:text-3xl lg:text-5xl leading-[1.1] max-w-lg tracking-tight">
           {promptText}
         </h2>
       </motion.div>
@@ -986,7 +989,7 @@ function MemoryStep({
       <motion.div
         ref={draftCardRef}
         layout
-        className="mt-5 sm:mt-6 max-w-lg"
+        className="mt-3 sm:mt-6 max-w-lg"
         animate={
           flying
             ? { opacity: 0, scale: 0.94, y: -8 }
@@ -1009,7 +1012,7 @@ function MemoryStep({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             maxLength={220}
-            rows={4}
+            rows={3}
             placeholder="write it like a little note to her…"
             className="w-full bg-transparent outline-none resize-none font-script text-xl sm:text-2xl lg:text-3xl leading-snug placeholder:opacity-40"
             style={{ color: "#5a3a14" }}
@@ -1023,7 +1026,7 @@ function MemoryStep({
         </div>
       </motion.div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3 max-w-lg">
+      <div className="mt-4 sm:mt-6 flex flex-wrap items-center gap-3 max-w-lg">
         <motion.button
           type="button"
           onClick={onDrop}
@@ -1133,7 +1136,7 @@ function ReviewStep({
 function Eyebrow({ children, accent }: { children: React.ReactNode; accent: string }) {
   return (
     <p
-      className="font-script text-2xl sm:text-3xl lg:text-4xl"
+      className="font-script text-xl sm:text-3xl lg:text-4xl"
       style={{ color: accent }}
     >
       {children}
@@ -1143,7 +1146,7 @@ function Eyebrow({ children, accent }: { children: React.ReactNode; accent: stri
 
 function BigHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-display font-semibold text-4xl sm:text-5xl lg:text-7xl mt-1 tracking-tight leading-[0.98]">
+    <h2 className="font-display font-semibold text-3xl sm:text-5xl lg:text-7xl mt-1 tracking-tight leading-[0.98]">
       {children}
     </h2>
   );
