@@ -1,12 +1,18 @@
 export type Scent = "lavender" | "vanilla" | "rose" | "honey" | "ocean";
 export type Ribbon = "blush" | "sage" | "butter" | "lilac" | "terracotta";
 
+/**
+ * A memory note. Stored as a [prompt, text] tuple to keep URLs short.
+ * The prompt is the question the writer answered; text is their answer.
+ */
+export type Memory = [string, string];
+
 export type JarData = {
   m: string;
   f: string;
   r: Ribbon;
   s: Scent;
-  n: string[];
+  n: Memory[];
 };
 
 export const SCENTS: Record<Scent, { label: string; bg: string; accent: string; text: string }> = {
@@ -82,9 +88,25 @@ export function encodeJar(data: JarData): string {
     f: data.f.trim().slice(0, 60),
     r: data.r,
     s: data.s,
-    n: data.n.map((note) => note.trim().slice(0, 220)).filter(Boolean).slice(0, 12),
+    n: data.n
+      .map(
+        ([p, t]) =>
+          [p.trim().slice(0, 80), t.trim().slice(0, 220)] as Memory,
+      )
+      .filter(([, t]) => t.length > 0)
+      .slice(0, 12),
   };
   return toBase64Url(JSON.stringify(minified));
+}
+
+function isMemory(x: unknown): x is Memory {
+  // accept legacy string entries by upgrading to ["", text]
+  return (
+    Array.isArray(x) &&
+    x.length === 2 &&
+    typeof x[0] === "string" &&
+    typeof x[1] === "string"
+  );
 }
 
 export function decodeJar(slug: string): JarData | null {
@@ -101,12 +123,19 @@ export function decodeJar(slug: string): JarData | null {
       return null;
     }
     if (!(parsed.s in SCENTS) || !(parsed.r in RIBBONS)) return null;
+    const notes: Memory[] = parsed.n
+      .map((x: unknown): Memory | null => {
+        if (typeof x === "string") return ["", x];
+        if (isMemory(x)) return [x[0], x[1]];
+        return null;
+      })
+      .filter((x: Memory | null): x is Memory => x !== null);
     return {
       m: parsed.m,
       f: parsed.f,
       r: parsed.r,
       s: parsed.s,
-      n: parsed.n.filter((x: unknown) => typeof x === "string"),
+      n: notes,
     };
   } catch {
     return null;

@@ -9,10 +9,26 @@ type Props = {
   scentLabel: string;
   className?: string;
   open?: boolean;
-  notesPreview?: string[];
+  /** count or list — only the length matters for the rendered squares */
+  notesPreview?: unknown[];
+  /**
+   * Sealing choreography:
+   *   "missing"    — no lid yet (jar is open, never sealed)
+   *   "idle"       — lid in place; obeys `open` prop for opening
+   *   "descending" — lid drops in from above with a thud
+   */
+  sealState?: "missing" | "idle" | "descending";
 };
 
-export default function Jar({ momName, ribbon, scentLabel, className, open = false, notesPreview = [] }: Props) {
+export default function Jar({
+  momName,
+  ribbon,
+  scentLabel,
+  className,
+  open = false,
+  notesPreview = [],
+  sealState = "idle",
+}: Props) {
   const r = RIBBONS[ribbon];
   const safeName = (momName || "Mom").trim() || "Mom";
   const labelName =
@@ -141,15 +157,36 @@ export default function Jar({ momName, ribbon, scentLabel, className, open = fal
           </text>
         </g>
 
-        {/* lid (slides up when open) */}
+        {/* lid: slides up when open, or drops in from above when sealing,
+            or hidden entirely when the jar hasn't been sealed yet */}
         <motion.g
           initial={false}
-          animate={{
-            y: open ? -120 : 0,
-            opacity: open ? 0 : 1,
-            rotate: open ? -8 : 0,
-          }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          animate={
+            sealState === "descending"
+              ? {
+                  y: [-280, -280, 14, -5, 0],
+                  rotate: [-14, -14, 5, -1, 0],
+                  opacity: [0, 1, 1, 1, 1],
+                }
+              : sealState === "missing"
+                ? { y: -320, opacity: 0 }
+                : {
+                    y: open ? -120 : 0,
+                    opacity: open ? 0 : 1,
+                    rotate: open ? -8 : 0,
+                  }
+          }
+          transition={
+            sealState === "descending"
+              ? {
+                  duration: 1.25,
+                  times: [0, 0.15, 0.7, 0.85, 1],
+                  ease: [0.45, 0, 0.55, 1],
+                }
+              : sealState === "missing"
+                ? { duration: 0 }
+                : { duration: 0.9, ease: [0.22, 1, 0.36, 1] }
+          }
           style={{ transformOrigin: "120px 80px" }}
         >
           <rect x="48" y="78" width="144" height="32" rx="6" fill="url(#lid)" />
