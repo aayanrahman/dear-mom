@@ -128,14 +128,17 @@ export default function FoldingPaper({
     `radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 60%, rgba(120,80,40,0.08) 100%),` +
     color;
 
+  // Same soft shadow on every panel so the unfolded sheet reads as one
+  // piece of paper (no heavy bar under any single section, no rectangle
+  // outline poking out beyond the visible panels while folding).
+  const panelShadow = "0 6px 18px rgba(0,0,0,0.14)";
   const flapBase: React.CSSProperties = {
     position: "absolute",
     left: 0,
     width: "100%",
     height: flapH,
     background: paperBg,
-    boxShadow:
-      "inset 0 0 0 1px rgba(120,80,40,0.10), 0 4px 12px rgba(0,0,0,0.10)",
+    boxShadow: panelShadow,
     backfaceVisibility: "visible",
     willChange: "transform",
   };
@@ -154,8 +157,6 @@ export default function FoldingPaper({
         style={{
           ...flapBase,
           top: flapH,
-          boxShadow:
-            "inset 0 0 0 1px rgba(120,80,40,0.10), 0 14px 32px rgba(0,0,0,0.18)",
         }}
       >
         <motion.div
@@ -233,14 +234,17 @@ export default function FoldingPaper({
           transformStyle: "preserve-3d",
         }}
       >
-        {/* slight crease shading at the seam side */}
-        <div
+        {/* Crease shading only visible while folded — fades out when flat
+            so the unfolded sheet reads as one continuous piece of paper. */}
+        <motion.div
           aria-hidden
+          animate={{ opacity: folded ? 1 : 0 }}
+          transition={{ duration: 0.35, delay: folded ? 0 : duration * 0.55 }}
           style={{
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0) 70%, rgba(0,0,0,0.10) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0) 78%, rgba(0,0,0,0.08) 100%)",
             pointerEvents: "none",
           }}
         />
@@ -257,13 +261,15 @@ export default function FoldingPaper({
           transformStyle: "preserve-3d",
         }}
       >
-        <div
+        <motion.div
           aria-hidden
+          animate={{ opacity: folded ? 1 : 0 }}
+          transition={{ duration: 0.35, delay: folded ? 0 : duration * 0.55 }}
           style={{
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(0deg, rgba(0,0,0,0) 70%, rgba(0,0,0,0.10) 100%)",
+              "linear-gradient(0deg, rgba(0,0,0,0) 78%, rgba(0,0,0,0.08) 100%)",
             pointerEvents: "none",
           }}
         />

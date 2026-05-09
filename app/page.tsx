@@ -493,18 +493,19 @@ function FlyingFold({
           ? {
               x: [note.from.x, (note.from.x + note.to.x) / 2, note.to.x],
               y: [note.from.y, peakY, note.to.y],
-              scale: [1, 0.6, 0.18],
-              rotate: [0, 24, 200],
+              scale: [1, 0.55, 0.22],
+              rotate: [0, 8, 18],
+              opacity: [1, 1, 0.9],
             }
           : { x: note.from.x, y: note.from.y, scale: 1, rotate: 0 }
       }
-      exit={{ opacity: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.18 } }}
       transition={
         phase === "flying"
           ? {
-              duration: 0.9,
-              times: [0, 0.5, 1],
-              ease: [0.45, 0, 0.55, 1],
+              duration: 0.85,
+              times: [0, 0.55, 1],
+              ease: [0.22, 1, 0.36, 1],
             }
           : { duration: 0 }
       }

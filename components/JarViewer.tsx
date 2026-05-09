@@ -456,10 +456,10 @@ export default function JarViewer({
                     style={{
                       left: "50%",
                       top: "50%",
-                      width: "min(74px, 16vw)",
-                      height: "min(74px, 16vw)",
-                      marginLeft: "min(-37px, -8vw)",
-                      marginTop: "min(-37px, -8vw)",
+                      width: "min(64px, 14vw)",
+                      height: "min(84px, 18vw)",
+                      marginLeft: "min(-32px, -7vw)",
+                      marginTop: "min(-42px, -9vw)",
                     }}
                   >
                     <CrumpledNote color={col.bg} bobDur={o.bobDur} bobDelay={o.bobDelay} />
@@ -606,24 +606,32 @@ function CrumpledNote({
         repeat: Infinity,
         ease: "easeInOut",
       }}
-      className="paper relative w-full h-full"
+      className="relative w-full h-full"
       style={{
         background: color,
-        borderRadius: "55% 45% 60% 50% / 50% 60% 45% 55%",
+        borderRadius: 4,
         boxShadow:
-          "0 10px 24px rgba(0,0,0,0.22), inset -3px -4px 8px rgba(0,0,0,0.08), inset 3px 3px 8px rgba(255,255,255,0.55)",
+          "0 10px 24px rgba(0,0,0,0.22), inset 0 0 0 1px rgba(120,80,40,0.10)",
       }}
     >
-      {/* crease shading */}
+      {/* horizontal fold creases — top third + bottom third, like a trifold letter */}
       <span
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
           borderRadius: "inherit",
           background:
-            "linear-gradient(120deg, transparent 38%, rgba(0,0,0,0.10) 39%, transparent 40%)," +
-            "linear-gradient(60deg, transparent 56%, rgba(0,0,0,0.08) 57%, transparent 58%)," +
-            "linear-gradient(150deg, transparent 64%, rgba(255,255,255,0.45) 65%, transparent 66%)",
+            "linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0) 4%, rgba(0,0,0,0) 32%, rgba(0,0,0,0.06) 33.5%, rgba(0,0,0,0) 35%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.06) 66.5%, rgba(0,0,0,0) 68%, rgba(0,0,0,0) 96%, rgba(0,0,0,0.10) 100%)",
+        }}
+      />
+      {/* faint ruled lines so it reads as paper */}
+      <span
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          borderRadius: "inherit",
+          background:
+            "repeating-linear-gradient(0deg, transparent 0 8px, rgba(160,120,70,0.06) 8px 9px)",
         }}
       />
     </motion.div>
