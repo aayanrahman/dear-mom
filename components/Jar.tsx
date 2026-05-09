@@ -42,6 +42,7 @@ export default function Jar({
         height="100%"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden
+        style={{ overflow: "visible" }}
       >
         <defs>
           <linearGradient id="glass" x1="0" x2="1" y1="0" y2="1">
@@ -164,9 +165,15 @@ export default function Jar({
           animate={
             sealState === "descending"
               ? {
-                  y: [-280, -280, 14, -5, 0],
-                  rotate: [-14, -14, 5, -1, 0],
-                  opacity: [0, 1, 1, 1, 1],
+                  // Mirror the reverse of the open animation: lid starts
+                  // a visible height above the jar (matching open's
+                  // y:-120 lift), holds briefly, descends, overshoots
+                  // slightly, settles. Opacity stays 1 throughout so the
+                  // lid is physically seen the whole way down instead of
+                  // fading in mid-air.
+                  y: [-120, -120, 14, -5, 0],
+                  rotate: [-8, -8, 4, -1, 0],
+                  opacity: 1,
                 }
               : sealState === "missing"
                 ? { y: -320, opacity: 0 }
