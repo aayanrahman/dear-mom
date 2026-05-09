@@ -185,7 +185,17 @@ export default function Jar({
                 }
               : sealState === "missing"
                 ? { duration: 0 }
-                : { duration: 0.9, ease: [0.22, 1, 0.36, 1] }
+                : {
+                    y: { duration: 0.9, ease: [0.22, 1, 0.36, 1] },
+                    rotate: { duration: 0.9, ease: [0.22, 1, 0.36, 1] },
+                    // On open, fade the lid out late (after it's lifted out
+                    // of frame). On close, fade it in fast at the start so
+                    // the lid is visible the whole way down — otherwise it
+                    // looks like the lid teleports into place.
+                    opacity: open
+                      ? { duration: 0.45, delay: 0.5, ease: "easeOut" }
+                      : { duration: 0.18, ease: "easeOut" },
+                  }
           }
           style={{ transformOrigin: "120px 80px" }}
         >

@@ -233,11 +233,30 @@ export default function JarViewer({
   }
 
   function reseal() {
-    audio.lidPop();
+    if (!open) return;
+    // Mirror the open animation in reverse: dismiss the final-message
+    // overlay first, then physically drop the lid back onto the jar with
+    // a soft wobble at landing. We don't use the descending sealState —
+    // that's the cinematic first-seal beat. This is just the reverse of
+    // openJar.
     setShowFinal(false);
-    setRevealed([]);
-    setActive(null);
-    setOpen(false);
+    window.setTimeout(() => {
+      audio.lidPop();
+      setOpen(false);
+      jarControls.start({
+        y: [0, 0, -6, 3, 0],
+        rotate: [0, 0, -1.2, 0.6, 0],
+        transition: {
+          duration: 1.05,
+          times: [0, 0.78, 0.86, 0.94, 1],
+          ease: [0.22, 1, 0.36, 1],
+        },
+      });
+    }, 700);
+    window.setTimeout(() => {
+      setRevealed([]);
+      setActive(null);
+    }, 1900);
   }
 
   async function copyLink() {
